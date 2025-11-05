@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login - SustentArte (mascote preso à caixa)</title>
+<style>
+  :root{
+    /* altura do mascote (largura em px). altere aqui se quiser */
+    --mascote-h: 150px;
+    --gap-top: 16px; /* espaço extra entre mascote e conteúdo da caixa */
+  }
+
+  *{box-sizing: border-box;margin:0;padding:0}
+
+  body{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    font-family: "Poppins", sans-serif;
+    background: #b8f5b0;
+    border: 10px solid #2e7d32;
+    border-radius: 15px;
+    box-shadow: inset 0 0 15px rgba(0,100,0,0.35);
+    overflow:auto;
+  }
+
+  /* ícones decorativos (opcional) */
+  .recycle-icon{position:absolute;width:80px;opacity:.07;pointer-events:none}
+  .recycle1{top:8%;left:8%}
+  .recycle2{bottom:10%;right:8%}
+  .recycle3{top:50%;right:28%}
+
+  .login-container{width:100%;max-width:440px;padding:12px;position:relative;z-index:1}
+
+  /* Caixa: reserve espaço no topo proporcional ao mascote */
+  .login-box{
+    position:relative;
+    background:#dff5cf;
+    border:6px solid #2e7d32;
+    border-radius:20px;
+    box-shadow:0 8px 30px rgba(0,0,0,.18);
+    /* padding-top depende da metade da altura do mascote (ele ficará meio por fora) */
+    padding: calc(var(--mascote-h) / 2 + var(--gap-top)) 28px 28px;
+    text-align:center;
+    color:#1b5e20;
+  }
+
+  /* Mascote agora posicionado RELATIVO à login-box */
+  .login-box .mascote{
+    position:absolute;
+    top:-36px; /* borda superior da caixa */
+    left:50%;
+    transform: translate(-50%, -50%); /* centraliza horizontal e coloca metade pra cima */
+    width: var(--mascote-h);
+    height: auto;
+    z-index:2;
+    pointer-events:none;
+  }
+
+  .login-box h2{font-size:1.6rem;margin-bottom:18px}
+  .input-group{ text-align:left;margin-bottom:16px }
+  .input-group label{ display:block;font-weight:700;color:#1b5e20;margin-bottom:6px;font-size:.95rem }
+  .input-group input{
+    width:100%;padding:12px;border-radius:10px;border:2px solid #81c784;background:#fff;color:#2e7d32;font-size:1rem;
+  }
+  .input-group input:focus{outline:none;box-shadow:0 0 6px rgba(67,160,71,.28);border-color:#43a047}
+
+  .senha-wrapper{position:relative}
+  .icone-olho{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:26px;cursor:pointer}
+
+  button[type="submit"]{
+    width:100%;padding:14px;border-radius:10px;border:none;background:#43a047;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;
+  }
+  button[type="submit"]:hover{background:#2e7d32}
+
+  /* ===== Responsividade: altere a variável do mascote para manter proporção ===== */
+  @media (max-width: 900px){
+    :root{ --mascote-h: 140px }
+    .login-box{ padding-left:22px;padding-right:22px }
+  }
+
+  @media (max-width: 600px){
+    :root{ --mascote-h: 120px }
+    .login-box{ padding-left:18px;padding-right:18px }
+    .login-box h2{font-size:1.35rem}
+    .icone-olho{width:22px}
+  }
+
+  @media (max-width: 400px){
+    :root{ --mascote-h: 100px; --gap-top: 12px }
+    .login-box{ padding-left:14px;padding-right:14px }
+    .login-box h2{font-size:1.15rem}
+  }
+
+  /* em telas com pouca altura, evita que o mascote seja muito grande */
+  @media (max-height: 600px){
+    :root{ --mascote-h: 90px }
+    .login-box{ padding-top: calc(var(--mascote-h) / 2 + var(--gap-top)) }
+  }
+
+  /* pequeno ajuste para evitar que inputs ou botão fiquem minúsculos */
+  input, button{min-height:44px}
+</style>
+</head>
+<body>
+
+  <!-- decorativos (opcionais) -->
+  <img src="recycle.png" class="recycle-icon recycle1" alt="">
+  <img src="recycle.png" class="recycle-icon recycle2" alt="">
+  <img src="recycle.png" class="recycle-icon recycle3" alt="">
+
+  <div class="login-container">
+    <div class="login-box">
+      <!-- mascote RELATIVO à caixa: ficará sempre "meio para fora" no topo -->
+      <img id="mascote" class="mascote" src="mascoteBlind.png" alt="Mascote">
+
+      <h2>Login</h2>
+
+      <form onsubmit="event.preventDefault(); handleLogin();">
+        <div class="input-group">
+          <label for="user">Usuário</label>
+          <input id="user" type="text" placeholder="Digite seu usuário">
+        </div>
+
+        <div class="input-group">
+          <label for="senha">Senha</label>
+          <div class="senha-wrapper">
+            <input id="senha" type="password" placeholder="Digite sua senha">
+            <img id="toggleSenha" class="icone-olho" src="olhoFechado.png" alt="Mostrar senha">
+          </div>
+        </div>
+
+        <button type="submit">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+  const senhaInput = document.getElementById('senha');
+  const toggleSenha = document.getElementById('toggleSenha');
+  const mascote = document.getElementById('mascote');
+
+  toggleSenha.addEventListener('click', () => {
+    const isPassword = senhaInput.type === 'password';
+    senhaInput.type = isPassword ? 'text' : 'password';
+
+    // sincroniza ícone e mascote com estado atual do campo
+    toggleSenha.src = isPassword ? 'olhoAberto.png' : 'olhoFechado.png';
+    mascote.src = isPassword ? 'mascote.png' : 'mascoteBlind.png';
+  });
+
+  function handleLogin(){
+    const user = document.getElementById('user').value.trim();
+    const pass = senhaInput.value.trim();
+    if(user === 'admin' && pass === 'admin'){
+      alert('Logado com sucesso (admin) ✔️');
+      // exemplo: window.location.href = 'home.html';
+    } else {
+      alert('Usuário ou senha incorretos.');
+    }
+  }
+</script>
+</body>
+</html>
