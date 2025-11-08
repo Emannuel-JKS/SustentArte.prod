@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LogiN - SustentArte</title>
+<title>Login - SustentArte</title>
 <style>
   hr.divider {
   margin: 18px 0;
@@ -167,6 +167,9 @@
             <img id="toggleSenha" class="icone-olho" src="olhoFechado.png" alt="Mostrar senha">
           </div>
         </div>
+      <p class="esqueci-senha">
+        <a href="#" id="esqueciSenhaLink">Esqueci minha senha</a>
+      </p>
 
        <button type="submit">Entrar</button>
 
@@ -233,6 +236,108 @@
 
     alert('Login realizado com sucesso!');
     window.location.href = 'home.html';
+  });
+</script>
+<div id="resetBox" class="floating-box" style="display:none;">
+  <h3>Recuperar senha</h3>
+  <p>Digite seu e-mail e enviaremos um link de redefinição.</p>
+  <input type="email" id="resetEmail" placeholder="Seu e-mail" required>
+  <div class="actions">
+    <button id="enviarReset">Enviar</button>
+    <button id="cancelarReset" class="cancel">Cancelar</button>
+  </div>
+</div>
+
+<style>
+  .esqueci-senha {
+    text-align:right;
+    margin-bottom:10px;
+  }
+  .esqueci-senha a {
+    color:#2e7d32;
+    font-weight:600;
+    text-decoration:none;
+    font-size:0.9rem;
+  }
+  .esqueci-senha a:hover {
+    text-decoration:underline;
+  }
+
+  .floating-box {
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:#dff5cf;
+    border:4px solid #2e7d32;
+    border-radius:15px;
+    box-shadow:0 6px 25px rgba(0,0,0,0.25);
+    padding:20px;
+    width:90%;
+    max-width:340px;
+    text-align:center;
+    z-index:10;
+  }
+  .floating-box input {
+    width:100%;
+    margin:10px 0;
+    padding:10px;
+    border:2px solid #81c784;
+    border-radius:8px;
+    font-size:1rem;
+  }
+  .floating-box .actions {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .floating-box button {
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    font-weight:700;
+    color:#fff;
+    cursor:pointer;
+  }
+  #enviarReset { background:#43a047; }
+  #enviarReset:hover { background:#2e7d32; }
+  .cancel { background:#999; }
+  .cancel:hover { background:#666; }
+</style>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const supabase = createClient('https://TEU_PROJECT_ID.supabase.co', 'SUA_PUBLIC_ANON_KEY');
+
+  const link = document.getElementById('esqueciSenhaLink');
+  const box = document.getElementById('resetBox');
+  const enviarBtn = document.getElementById('enviarReset');
+  const cancelarBtn = document.getElementById('cancelarReset');
+
+  link.addEventListener('click', (e)=>{
+    e.preventDefault();
+    box.style.display='block';
+  });
+
+  cancelarBtn.addEventListener('click', ()=> box.style.display='none');
+
+  enviarBtn.addEventListener('click', async ()=>{
+    const email = document.getElementById('resetEmail').value.trim();
+    if(!email){
+      alert('Digite um e-mail válido.');
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/nova-senha.html'
+    });
+    if(error){
+      alert('Erro ao enviar e-mail: ' + error.message);
+    }else{
+      alert('Verifique sua caixa de entrada. Um link foi enviado para redefinir sua senha.');
+      box.style.display='none';
+    }
   });
 </script>
 
