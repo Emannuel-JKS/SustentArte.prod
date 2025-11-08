@@ -214,9 +214,7 @@
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: senha }, {
-  redirectTo: "https://sr-junkie.github.io/SustentArte/#/nova-senha.html"
-});
+      const { error } = await supabase.auth.updateUser({ password: senha });
       if (error) throw error;
       mostrarMensagem('Senha redefinida com sucesso! Agora faça login.', 'sucesso');
       setTimeout(() => window.location.href = 'login.html', 2500);
