@@ -283,7 +283,16 @@
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp(
+      {
+        email,
+        password,
+      },
+      {
+        emailRedirectTo: 'https://sr-junkie.github.io/SustentArte/login.html'
+      }
+    );
+
 
     if (error) {
       console.error(error);
