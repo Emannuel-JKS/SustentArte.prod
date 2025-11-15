@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoConsciente - Consumo Inteligente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha512-Urg6itz3UwQlhMG2tB7+MXfbZJYQpDAfYwULR1Q32BBXbwBOqWM1gEGKZbg8MQgfDYSXTeS1Gv53EgFRdrI7w==" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha512-BwHJ8d/vNJ1T453En2M2fYvvHFl8j/4P+Pr7q2XrCezjHl+AY8JE0ZVjHY9/HAS323dIfUDYgNhRRB9QqAyNtw==" crossorigin=""></script>
+  <style id="app-style">
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .tab-button {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .tab-button.active {
+      color: #10b981;
+      font-weight: 600;
+    }
+    
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: #10b981;
+      border-radius: 2px;
+    }
+    
+    .map-container {
+      height: calc(100vh - 180px);
+      min-height: 400px;
+    }
+    
+    .collection-point-card {
+      transition: all 0.2s ease;
+    }
+    
+    .collection-point-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .gallery-item {
+      transition: all 0.3s ease;
+    }
+    
+    .gallery-item:hover {
+      transform: scale(1.02);
+    }
+    
+    .news-card {
+      transition: all 0.2s ease;
+    }
+    
+    .news-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .loader {
+      border-top-color: #10b981;
+      animation: spinner 1s linear infinite;
+    }
+    
+    @keyframes spinner {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #10b981;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0d9669;
+    }
+
+    .waste-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .waste-tag.plastic { background-color: #bfdbfe; color: #1e40af; }
+    .waste-tag.glass { background-color: #bbf7d0; color: #166534; }
+    .waste-tag.paper { background-color: #fef3c7; color: #92400e; }
+    .waste-tag.metal { background-color: #e5e5e5; color: #525252; }
+    .waste-tag.electronic { background-color: #fecaca; color: #991b1b; }
+    .waste-tag.organic { background-color: #d1fae5; color: #065f46; }
+
+    .toggle-view {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+
+    .toggle-view input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 30px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #10b981;
+    }
+
+    input:focus + .slider {
+      box-shadow: 0 0 1px #10b981;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(30px);
+    }
+
+    .toggle-labels {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      width: 120px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Navbar -->
+  <nav class="bg-white shadow-md fixed w-full z-10">
+    <div class="container mx-auto px-4">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center">
+          <i class="fas fa-leaf text-green-500 text-2xl mr-2"></i>
+          <h1 class="text-xl font-bold text-green-600">EcoConsciente</h1>
+        </div>
+        <div class="hidden md:block">
+          <div class="flex space-x-12">
+            <button class="tab-button active px-3 py-2 text-gray-700 hover:text-green-600" data-tab="coleta">
+              <i class="fas fa-recycle mr-2"></i>Coleta
+            </button>
+            <button class="tab-button px-3 py-2 text-gray-700 hover:text-green-600" data-tab="galeria">
+              <i class="fas fa-images mr-2"></i>Galeria
+            </button>
+            <button class="tab-button px-3 py-2 text-gray-700 hover:text-green-600" data-tab="noticias">
+              <i class="fas fa-newspaper mr-2"></i>Notícias
+            </button>
+          </div>
+        </div>
+        <div class="md:hidden">
+          <button id="mobile-menu-button" class="text-gray-600 hover:text-green-600 focus:outline-none">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <button class="tab-button active block w-full text-left px-3 py-2 text-gray-700 hover:text-green-600" data-tab="coleta">
+          <i class="fas fa-recycle mr-2"></i>Coleta
+        </button>
+        <button class="tab-button block w-full text-left px-3 py-2 text-gray-700 hover:text-green-600" data-tab="galeria">
+          <i class="fas fa-images mr-2"></i>Galeria
+        </button>
+        <button class="tab-button block w-full text-left px-3 py-2 text-gray-700 hover:text-green-600" data-tab="noticias">
+          <i class="fas fa-newspaper mr-2"></i>Notícias
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="container mx-auto px-4 pt-24 pb-10">
+    <!-- Coleta Tab -->
+    <div id="coleta" class="tab-content active">
+      <div class="mb-6 flex justify-between items-center flex-wrap">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Pontos de Coleta Seletiva</h2>
+        <div class="flex items-center space-x-4">
+          <button id="locate-me" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow-md transition-all flex items-center">
+            <i class="fas fa-location-arrow mr-2"></i>
+            <span>Minha Localização</span>
+          </button>
+          <div class="flex items-center">
+            <label class="toggle-view">
+              <input type="checkbox" id="view-toggle">
+              <span class="slider"></span>
+            </label>
+            <div class="toggle-labels ml-2">
+              <span id="map-label" class="text-sm font-medium text-gray-700">Mapa</span>
+              <span id="list-label" class="text-sm font-medium text-gray-400">Lista</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="map-view" class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div id="collection-map" class="map-container"></div>
+      </div>
+      
+      <div id="list-view" class="hidden space-y-4 mt-4">
+        <div id="collection-points-list" class="space-y-4">
+          <!-- Collection points will be loaded here -->
+          <div class="flex justify-center py-10">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Galeria Tab -->
+    <div id="galeria" class="tab-content">
+      <div class="mb-6 flex justify-between items-center flex-wrap">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Galeria de Tutoriais</h2>
+        <button id="upload-tutorial" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow-md transition-all flex items-center">
+          <i class="fas fa-upload mr-2"></i>
+          <span>Enviar Tutorial</span>
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="gallery-grid">
+        <!-- Gallery items will be loaded here -->
+        <div class="flex justify-center col-span-full py-10">
+          <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Notícias Tab -->
+    <div id="noticias" class="tab-content">
+      <div class="mb-6 flex justify-between items-center flex-wrap">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Últimas Notícias</h2>
+        <button id="import-news" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full shadow-md transition-all flex items-center">
+          <i class="fas fa-file-csv mr-2"></i>
+          <span>Importar CSV</span>
+        </button>
+      </div>
+      
+      <div class="space-y-6" id="news-feed">
+        <!-- News items will be loaded here -->
+        <div class="flex justify-center py-10">
+          <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Upload Tutorial Modal -->
+  <div id="upload-modal" class="fixed z-20 inset-0 hidden">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      <div class="relative bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Enviar Novo Tutorial</h3>
+          <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <form id="tutorial-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Título do Tutorial</label>
+            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Digite o título" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" rows="3" placeholder="Descreva brevemente seu tutorial" required></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Imagem ou Vídeo</label>
+            <div class="flex items-center space-x-3">
+              <label class="flex-1">
+                <span class="sr-only">Escolha uma imagem</span>
+                <input type="file" id="file-upload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+              </label>
+              <span class="text-gray-500 text-sm">OU</span>
+              <input type="url" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="URL da imagem/vídeo">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+            <select class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+              <option value="reciclagem">Reciclagem</option>
+              <option value="customizacao">Customização de Roupas</option>
+              <option value="reaproveitamento">Reaproveitamento de Materiais</option>
+              <option value="reducao">Redução de Desperdício</option>
+            </select>
+          </div>
+          <div class="pt-3">
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-md transition-all flex items-center justify-center">
+              <i class="fas fa-paper-plane mr-2"></i>
+              <span>Publicar Tutorial</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import CSV Modal -->
+  <div id="csv-modal" class="fixed z-20 inset-0 hidden">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      <div class="relative bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Importar Notícias via CSV</h3>
+          <button id="close-csv-modal" class="text-gray-400 hover:text-gray-500">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <form id="csv-form" class="space-y-4">
+          <div>
+            <p class="text-sm text-gray-600 mb-3">Selecione um arquivo CSV com as colunas: title, summary, imageUrl, date</p>
+            <label class="block w-full">
+              <span class="sr-only">Escolha um arquivo CSV</span>
+              <input type="file" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+            </label>
+          </div>
+          <div class="pt-3">
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-md transition-all flex items-center justify-center">
+              <i class="fas fa-file-import mr-2"></i>
+              <span>Processar Arquivo</span>
+            </button>
+          </div>
+        </form>
+        <div class="mt-4 text-sm text-gray-600">
+          <p><strong>Exemplo de formato CSV:</strong></p>
+          <pre class="bg-gray-100 p-2 rounded text-xs overflow-x-auto mt-1">title,summary,imageUrl,date
+Novos métodos de compostagem,Descubra técnicas inovadoras...,https://example.com/img1.jpg,2025-04-15
+Moda sustentável em alta,As tendências mais recentes...,https://example.com/img2.jpg,2025-04-10</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-md shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 z-50 hidden">
+    <div class="flex items-center">
+      <i class="fas fa-check-circle mr-2"></i>
+      <span id="toast-message">Operação realizada com sucesso!</span>
+    </div>
+  </div>
+
+  <script id="app-script">
+    // Tab navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      // Toggle mobile menu
+      mobileMenuButton.addEventListener('click', function() {
+        mobileMenu.classList.toggle('hidden');
+      });
+      
+      // Tab switching
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const tabName = this.dataset.tab;
+          
+          // Update active tab button
+          tabButtons.forEach(btn => {
+            btn.classList.remove('active');
+          });
+          this.classList.add('active');
+          
+          // Show active tab content
+          tabContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === tabName) {
+              content.classList.add('active');
+            }
+          });
+          
+          // Hide mobile menu after tab selection
+          mobileMenu.classList.add('hidden');
+          
+          // Initialize map when switching to collection tab
+          if (tabName === 'coleta' && !map) {
+            initMap();
+          }
+        });
+      });
+      
+      // Modal functionality
+      const uploadButton = document.getElementById('upload-tutorial');
+      const uploadModal = document.getElementById('upload-modal');
+      const closeModal = document.getElementById('close-modal');
+      const tutorialForm = document.getElementById('tutorial-form');
+      
+      uploadButton.addEventListener('click', function() {
+        uploadModal.classList.remove('hidden');
+      });
+      
+      closeModal.addEventListener('click', function() {
+        uploadModal.classList.add('hidden');
+      });
+      
+      // CSV import modal
+      const importButton = document.getElementById('import-news');
+      const csvModal = document.getElementById('csv-modal');
+      const closeCsvModal = document.getElementById('close-csv-modal');
+      const csvForm = document.getElementById('csv-form');
+      
+      importButton.addEventListener('click', function() {
+        csvModal.classList.remove('hidden');
+      });
+      
+      closeCsvModal.addEventListener('click', function() {
+        csvModal.classList.add('hidden');
+      });
+      
+      // Form submissions
+      tutorialForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        showToast('Tutorial enviado com sucesso!');
+        uploadModal.classList.add('hidden');
+      });
+      
+      csvForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        showToast('Arquivo CSV processado com sucesso!');
+        csvModal.classList.add('hidden');
+      });
+      
+      // Map/List view toggle
+      const viewToggle = document.getElementById('view-toggle');
+      const mapView = document.getElementById('map-view');
+      const listView = document.getElementById('list-view');
+      const mapLabel = document.getElementById('map-label');
+      const listLabel = document.getElementById('list-label');
+      
+      viewToggle.addEventListener('change', function() {
+        if (this.checked) {
+          mapView.classList.add('hidden');
+          listView.classList.remove('hidden');
+          mapLabel.classList.add('text-gray-400');
+          mapLabel.classList.remove('text-gray-700');
+          listLabel.classList.add('text-gray-700');
+          listLabel.classList.remove('text-gray-400');
+          
+          // Load collection points list if it's empty
+          if (!document.querySelector('.collection-point-card')) {
+            loadCollectionPoints();
+          }
+        } else {
+          mapView.classList.remove('hidden');
+          listView.classList.add('hidden');
+          mapLabel.classList.add('text-gray-700');
+          mapLabel.classList.remove('text-gray-400');
+          listLabel.classList.add('text-gray-400');
+          listLabel.classList.remove('text-gray-700');
+        }
+      });
+      
+      // Initialize map on page load
+      let map = null;
+      const initMap = () => {
+        map = L.map('collection-map').setView([-23.5505, -46.6333], 13); // São Paulo as default
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Sample markers for demonstration
+        addMapMarkers();
+      };
+      
+      // Load map on page load if coleta tab is active
+      if (document.getElementById('coleta').classList.contains('active')) {
+        initMap();
+      }
+      
+      // Locate me button
+      const locateButton = document.getElementById('locate-me');
+      locateButton.addEventListener('click', function() {
+        if (navigator.geolocation) {
+          showToast('Buscando sua localização...');
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              
+              if (map) {
+                map.setView([lat, lng], 15);
+                L.marker([lat, lng]).addTo(map)
+                  .bindPopup('Você está aqui!')
+                  .openPopup();
+              }
+              
+              showToast('Localização encontrada!');
+            },
+            () => {
+              showToast('Não foi possível obter sua localização.', 'error');
+            }
+          );
+        } else {
+          showToast('Geolocalização não é suportada pelo seu navegador.', 'error');
+        }
+      });
+      
+      // Load demo data
+      loadGalleryItems();
+      loadNewsItems();
+      
+      // Function to show toast message
+      function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        
+        toastMessage.textContent = message;
+        
+        if (type === 'error') {
+          toast.classList.remove('bg-green-600');
+          toast.classList.add('bg-red-600');
+        } else {
+          toast.classList.remove('bg-red-600');
+          toast.classList.add('bg-green-600');
+        }
+        
+        toast.classList.remove('hidden');
+        
+        // Animate in
+        setTimeout(() => {
+          toast.classList.remove('translate-y-10', 'opacity-0');
+        }, 50);
+        
+        // Animate out after delay
+        setTimeout(() => {
+          toast.classList.add('translate-y-10', 'opacity-0');
+          setTimeout(() => {
+            toast.classList.add('hidden');
+          }, 300);
+        }, 3000);
+      }
+      
+      // Add map markers
+      function addMapMarkers() {
+        if (!map) return;
+        
+        const collectionPoints = getCollectionPointsData();
+        
+        collectionPoints.forEach(point => {
+          const marker = L.marker([point.lat, point.lng]).addTo(map);
+          
+          // Create popup content
+          let popupContent = `
+            <div class="p-2">
+              <h3 class="font-bold text-green-700">${point.name}</h3>
+              <p class="text-sm text-gray-600">${point.address}</p>
+              <div class="mt-2">
+          `;
+          
+          // Add waste type tags
+          point.wasteTypes.forEach(type => {
+            popupContent += `<span class="waste-tag ${type.toLowerCase()}">${type}</span>`;
+          });
+          
+          popupContent += `
+              </div>
+            </div>
+          `;
+          
+          marker.bindPopup(popupContent);
+        });
+      }
+      
+      // Load collection points list
+      function loadCollectionPoints() {
+        const listContainer = document.getElementById('collection-points-list');
+        listContainer.innerHTML = '';
+        
+        const collectionPoints = getCollectionPointsData();
+        
+        collectionPoints.forEach(point => {
+          const card = document.createElement('div');
+          card.className = 'collection-point-card bg-white rounded-xl shadow-md p-4';
+          
+          let wasteTypesHTML = '';
+          point.wasteTypes.forEach(type => {
+            wasteTypesHTML += `<span class="waste-tag ${type.toLowerCase()}">${type}</span>`;
+          });
+          
+          card.innerHTML = `
+            <h3 class="font-bold text-lg text-green-700">${point.name}</h3>
+            <p class="text-gray-600 mb-2">${point.address}</p>
+            <div class="flex flex-wrap mt-2">
+              ${wasteTypesHTML}
+            </div>
+            <div class="mt-3 flex justify-between items-center">
+              <span class="text-sm text-gray-500">
+                <i class="fas fa-map-marker-alt text-green-600 mr-1"></i> ${point.distance} km
+              </span>
+              <a href="https://maps.google.com/maps?q=${point.lat},${point.lng}" target="_blank" class="text-green-600 hover:text-green-800 text-sm font-medium">
+                <i class="fas fa-directions mr-1"></i> Como chegar
+              </a>
+            </div>
+          `;
+          
+          listContainer.appendChild(card);
+        });
+      }
+      
+      // Load gallery items
+      function loadGalleryItems() {
+        const galleryGrid = document.getElementById('gallery-grid');
+        galleryGrid.innerHTML = '';
+        
+        const galleryItems = getGalleryItemsData();
+        
+        galleryItems.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'gallery-item bg-white rounded-xl shadow-md overflow-hidden';
+          
+          card.innerHTML = `
+            <div class="relative pb-2/3">
+              <img src="${item.imageUrl}" alt="${item.title}" class="absolute h-full w-full object-cover">
+              ${item.isVideo ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-play-circle text-white text-4xl opacity-80"></i></div>' : ''}
+            </div>
+            <div class="p-4">
+              <h3 class="font-bold text-lg text-gray-800">${item.title}</h3>
+              <p class="text-gray-600 mt-1 text-sm">${item.description}</p>
+              <div class="mt-3 flex justify-between items-center">
+                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">${item.category}</span>
+                <span class="text-gray-500 text-sm">${item.date}</span>
+              </div>
+            </div>
+          `;
+          
+          galleryGrid.appendChild(card);
+        });
+      }
+      
+      // Load news items
+      function loadNewsItems() {
+        const newsFeed = document.getElementById('news-feed');
+        newsFeed.innerHTML = '';
+        
+        const newsItems = getNewsItemsData();
+        
+        newsItems.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'news-card bg-white rounded-xl shadow-md overflow-hidden';
+          
+          card.innerHTML = `
+            <div class="md:flex">
+              <div class="md:w-1/3">
+                <img src="${item.imageUrl}" alt="${item.title}" class="h-48 w-full object-cover md:h-full">
+              </div>
+              <div class="p-6 md:w-2/3">
+                <div class="flex items-center text-sm text-gray-500 mb-2">
+                  <i class="far fa-calendar-alt mr-2"></i>
+                  <span>${item.date}</span>
+                </div>
+                <h3 class="font-bold text-xl text-gray-800 mb-2">${item.title}</h3>
+                <p class="text-gray-600">${item.summary}</p>
+                <div class="mt-4">
+                  <a href="javascript:void(0)" class="text-green-600 hover:text-green-800 font-medium flex items-center">
+                    Leia mais
+                    <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          newsFeed.appendChild(card);
+        });
+      }
+      
+      // Sample data for collection points
+      function getCollectionPointsData() {
+        return [
+          {
+            name: 'EcoPonto Vila Mariana',
+            address: 'Rua Vergueiro, 1200, Vila Mariana',
+            lat: -23.5869,
+            lng: -46.6393,
+            wasteTypes: ['Plástico', 'Vidro', 'Papel', 'Metal'],
+            distance: '1.2'
+          },
+          {
+            name: 'Recicla Já Pinheiros',
+            address: 'Av. Rebouças, 3970, Pinheiros',
+            lat: -23.5746,
+            lng: -46.6910,
+            wasteTypes: ['Plástico', 'Eletrônico', 'Papel'],
+            distance: '2.5'
+          },
+          {
+            name: 'Cooperativa Verde Vida',
+            address: 'Rua Augusta, 1520, Consolação',
+            lat: -23.5535,
+            lng: -46.6509,
+            wasteTypes: ['Vidro', 'Metal', 'Orgânico'],
+            distance: '3.1'
+          },
+          {
+            name: 'Central de Reciclagem Mooca',
+            address: 'Rua da Mooca, 1850, Mooca',
+            lat: -23.5505,
+            lng: -46.5922,
+            wasteTypes: ['Plástico', 'Papel', 'Metal', 'Vidro', 'Orgânico'],
+            distance: '4.8'
+          },
+          {
+            name: 'Ponto Verde Paulista',
+            address: 'Av. Paulista, 1000, Bela Vista',
+            lat: -23.5651,
+            lng: -46.6521,
+            wasteTypes: ['Eletrônico', 'Plástico', 'Papel'],
+            distance: '1.7'
+          }
+        ];
+      }
+      
+      // Sample data for gallery
+      function getGalleryItemsData() {
+        return [
+          {
+            title: 'Transformando Garrafas PET em Vasos',
+            description: 'Aprenda a criar lindos vasos para plantas usando garrafas PET que iriam para o lixo.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2017/06/22/13/17/recycling-2430785_1280.jpg',
+            category: 'Reciclagem',
+            date: '15 Abr 2025',
+            isVideo: false
+          },
+          {
+            title: 'Customização de Jeans Antigos',
+            description: 'Dê nova vida às suas calças jeans com técnicas simples de customização.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2017/08/01/11/48/blue-2564660_1280.jpg',
+            category: 'Customização',
+            date: '10 Abr 2025',
+            isVideo: true
+          },
+          {
+            title: 'Compostagem Caseira',
+            description: 'Como iniciar sua composteira em casa e reduzir o lixo orgânico.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2020/05/21/20/35/compost-5202519_1280.jpg',
+            category: 'Orgânico',
+            date: '05 Abr 2025',
+            isVideo: false
+          },
+          {
+            title: 'Móveis com Pallets',
+            description: 'Ideias criativas para transformar pallets em móveis funcionais.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2015/05/15/09/29/furniture-768766_1280.jpg',
+            category: 'Reaproveitamento',
+            date: '01 Abr 2025',
+            isVideo: false
+          },
+          {
+            title: 'Roupas de Tecidos Reciclados',
+            description: 'Técnicas de costura para criar novas peças a partir de roupas antigas.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2016/11/22/19/08/sew-1850004_1280.jpg',
+            category: 'Customização',
+            date: '28 Mar 2025',
+            isVideo: true
+          },
+          {
+            title: 'Arte com Materiais Recicláveis',
+            description: 'Crie objetos decorativos usando materiais que seriam descartados.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2019/04/07/14/58/recycling-4109456_1280.jpg',
+            category: 'Reciclagem',
+            date: '25 Mar 2025',
+            isVideo: false
+          }
+        ];
+      }
+      
+      // Sample data for news
+      function getNewsItemsData() {
+        return [
+          {
+            title: 'Brasil atinge recorde em reciclagem de embalagens',
+            summary: 'Índices de reciclagem de embalagens crescem 15% no último ano, alcançando o melhor resultado da história do país.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2020/04/17/17/40/recycling-5055969_1280.jpg',
+            date: '20 Abril 2025'
+          },
+          {
+            title: 'Novas políticas incentivam consumo consciente nas escolas',
+            summary: 'Programa nacional busca educar crianças sobre sustentabilidade e redução de desperdício desde cedo.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2017/08/06/22/01/books-2596809_1280.jpg',
+            date: '15 Abril 2025'
+          },
+          {
+            title: 'Startup cria tecido biodegradável a partir de resíduos agrícolas',
+            summary: 'Empresa brasileira desenvolve tecido que se decompõe em 90 dias, revolucionando a moda sustentável.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2017/10/13/14/15/spindle-2847854_1280.jpg',
+            date: '10 Abril 2025'
+          },
+          {
+            title: 'Cidades implementam programa de coleta seletiva inteligente',
+            summary: 'Sistema utiliza IoT para otimizar rotas e aumentar a eficiência na coleta de resíduos recicláveis.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2016/11/29/05/45/astronomy-1867616_1280.jpg',
+            date: '05 Abril 2025'
+          },
+          {
+            title: 'Pesquisa revela impacto positivo do consumo consciente na economia',
+            summary: 'Estudo mostra que práticas sustentáveis geraram 200 mil novos empregos no setor de economia circular.',
+            imageUrl: 'https://cdn.pixabay.com/photo/2020/07/08/04/12/work-5382501_1280.jpg',
+            date: '01 Abril 2025'
+          }
+        ];
+      }
+    });
+  </script>
+</body>
+</html>
